@@ -23,7 +23,7 @@ fn main() {
     };
     let url = match Url::parse(&url){
         Ok(token) => token,
-        Err(_e) => {println!("Please use an absolute url as input\nEx. http://rescale.com");return},
+        Err(_e) => {println!("Please use an absolute url as input\nEx. http://apple.com");return},
     };
     let sites_visited: Arc<Mutex<HashSet<String>>> = Arc::new(Mutex::new(HashSet::new()));
     stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
