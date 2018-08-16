@@ -56,6 +56,7 @@ fn crawl_url(url: reqwest::Url, sites_visited: Arc<Mutex<HashSet<String>>>) -> R
         .filter_map(|n| n.attr("href"))
         .map(|x| x.to_string())
         .collect();
+
     links.par_iter()
         .for_each(|link| {
             let recurse_url = Url::parse(&link);
