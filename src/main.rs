@@ -42,7 +42,6 @@ fn crawl_url(url: reqwest::Url, sites_visited: Arc<Mutex<HashSet<String>>>) -> R
     match *guard{
         ref mut hs => match hs.contains(url.as_str()){
             true => {
-                //println!("Skipping {:?}. Already been crawled.", url);
                 return Ok(())},
             false => {hs.insert(url.clone().to_string());},
         }
@@ -52,7 +51,6 @@ fn crawl_url(url: reqwest::Url, sites_visited: Arc<Mutex<HashSet<String>>>) -> R
     println!("{}", url);
 
     let res = reqwest::get(url.as_str())?;
-    //let res = reqwest::get("https://www.rust-lang.org/en-US/")?;
     let links: Vec<String> = Document::from_read(res)?
         .find(Name("a"))
         .filter_map(|n| n.attr("href"))
