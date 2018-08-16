@@ -61,25 +61,12 @@ fn crawl_url(url: reqwest::Url, sites_visited: Arc<Mutex<HashSet<String>>>) -> R
     links.par_iter()
         .for_each(|link| {
             let recurse_url = Url::parse(&link);
-            //println!(">>>{}", link);
             match recurse_url {
                 Ok(l) => {
                     stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
                         match crawl_url(l, sites_visited.clone()) {
                             Ok(_) => {()},
-                            Err(_e) => {
-                                let recurse_url = url.join(&link);
-                                if recurse_url.is_ok(){
-                                    stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
-                                        match crawl_url(recurse_url.unwrap(), sites_visited.clone()) {
-                                            Ok(_) => (Ok(())),
-                                            Err(e) => {println!(">>> Error crawling {}: {:?}", link, e); return Err(Box::new(e))}
-                                        }
-                                    }).unwrap();
-
-                                }
-                                //println!("Error crawling {}: {:?}", link, e);
-                            },
+                            Err(_e) => {},
                         }
                     });
                 },
@@ -93,7 +80,6 @@ fn crawl_url(url: reqwest::Url, sites_visited: Arc<Mutex<HashSet<String>>>) -> R
                             }
                         }).unwrap();
                     }
-                    //println!("Error crawling {}: {:?}", link, e);
                 },
             }
 
