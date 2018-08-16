@@ -64,7 +64,7 @@ fn crawl_url(url: reqwest::Url, sites_visited: Arc<Mutex<HashSet<String>>>) -> R
                     stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
                         match crawl_url(l, sites_visited.clone()) {
                             Ok(_) => {()},
-                            Err(_e) => {},
+                            Err(_e) => {return Err(Box::new(e)},
                         }
                     });
                 },
