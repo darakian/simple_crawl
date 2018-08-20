@@ -5,12 +5,11 @@ extern crate reqwest;
 extern crate select;
 use select::document::Document;
 use select::predicate::Name;
-extern crate rayon;
-use rayon::prelude::*;
 extern crate url;
 use url::Url;
-extern crate stacker;
-
+use std::sync::mpsc::{channel, Sender};
+extern crate threadpool;
+use threadpool::ThreadPool;
 
 fn main() {
 
@@ -26,23 +25,29 @@ fn main() {
         Err(_e) => {println!("Please use an absolute url as input\nEx. http://apple.com");return},
     };
     let sites_visited: Arc<Mutex<HashSet<String>>> = Arc::new(Mutex::new(HashSet::new()));
-    stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
-        match crawl_url(url.clone(), sites_visited){
-            Ok(_) => (),
-            Err(e) => {println!("Error crawling {}: {:?}", url, e);}
-        };
-    });
+    let (link_sender, link_receiver) = channel::<reqwest::Url>();
+    //Init thread pool and get to work
+    let n_workers = 4;
+    let n_jobs = 8;
+    let pool = ThreadPool::new(n_workers);
+    link_sender.send(url);
+    for link in link_receiver.iter(){
+        let inner_sender = link_sender.clone();
+        let inner_sites = sites_visited.clone();
+        pool.execute(move|| {crawl_url(link, inner_sites, inner_sender)});
+    }
+
 }
 
-fn crawl_url(url: reqwest::Url, sites_visited: Arc<Mutex<HashSet<String>>>) -> Result<(), Box<std::error::Error>> {
+fn crawl_url(url: reqwest::Url, sites_visited: Arc<Mutex<HashSet<String>>>, link_sender: Sender<reqwest::Url>) -> () {
+    //Bad url case
     if url.cannot_be_a_base(){
-        return Ok(())
+        return
     }
     let mut guard = sites_visited.lock().unwrap();
     match *guard{
         ref mut hs => match hs.contains(url.as_str()){
-            true => {
-                return Ok(())},
+            true => return,
             false => {hs.insert(url.clone().to_string());},
         }
     }
@@ -50,37 +55,29 @@ fn crawl_url(url: reqwest::Url, sites_visited: Arc<Mutex<HashSet<String>>>) -> R
 
     println!("{}", url);
 
-    let res = reqwest::get(url.as_str())?;
-    let links: Vec<String> = Document::from_read(res)?
+    //Request page and build vec of links on page
+    let res = reqwest::get(url.as_str()).expect("error fetching url");
+    let links: Vec<String> = Document::from_read(res).expect("error parsing url")
         .find(Name("a"))
         .filter_map(|n| n.attr("href"))
         .map(|x| x.to_string())
         .collect();
 
-    links.par_iter()
+
+    //Check links and queue them for processing
+    links.iter()
         .for_each(|link| {
             let recurse_url = Url::parse(&link);
             match recurse_url {
-            /**/Ok(l) => {
-                    stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
-                        match crawl_url(l, sites_visited.clone()) {
-                            Ok(_) => {Ok(())},
-                            Err(_e) => {return Err(Box::new(_e))},
-                        }
-                    }).unwrap();
+                Ok(l) => {
+                    link_sender.send(l);
                 },
-            /**/Err(_e) =>  {
+                Err(_e) =>  {
                     let recurse_url = url.join(&link);
                     if recurse_url.is_ok(){
-                        stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
-                            match crawl_url(recurse_url.unwrap(), sites_visited.clone()) {
-                                Ok(_) => (Ok(())),
-                                Err(e) => {println!(">>> Error crawling {}: {:?}", link, e);return Err(Box::new(e))}
-                            }
-                        }).unwrap();
+                        link_sender.send(recurse_url.expect("error passing recurse_url"));
                     }
                 },
             }
         });
-    Ok(())
 }

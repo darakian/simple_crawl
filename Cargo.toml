@@ -6,6 +6,5 @@ authors = ["Jon Moroney <darakian@gmail.com>"]
 [dependencies]
 reqwest = "0.8.7"
 select = "0.4.2"
-rayon = "1.0"
 url = "1.7.1"
-stacker = "0.1.3"
+threadpool = "1.7.1"
