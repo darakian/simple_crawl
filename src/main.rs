@@ -64,10 +64,10 @@ fn crawl_url(url: reqwest::Url, sites_visited: Arc<Mutex<HashSet<String>>>) -> R
             /**/Ok(l) => {
                     stacker::maybe_grow(32 * 1024, 1024 * 1024, || {
                         match crawl_url(l, sites_visited.clone()) {
-                            Ok(_) => {()},
-                            Err(_e) => {return Err(Box::new(e)},
+                            Ok(_) => {Ok(())},
+                            Err(_e) => {return Err(Box::new(_e))},
                         }
-                    });
+                    }).unwrap();
                 },
             /**/Err(_e) =>  {
                     let recurse_url = url.join(&link);
