@@ -10,6 +10,7 @@ use url::Url;
 use std::sync::mpsc::{channel, Sender};
 extern crate threadpool;
 use threadpool::ThreadPool;
+extern crate num_cpus;
 
 fn main() {
 
@@ -27,8 +28,7 @@ fn main() {
     let sites_visited: Arc<Mutex<HashSet<String>>> = Arc::new(Mutex::new(HashSet::new()));
     let (link_sender, link_receiver) = channel::<reqwest::Url>();
     //Init thread pool and get to work
-    let n_workers = 4;
-    let pool = ThreadPool::new(n_workers);
+    let pool = ThreadPool::new(num_cpus::get());
     link_sender.send(url).expect("Error sending url to queue");
     for link in link_receiver.iter(){
         let inner_sender = link_sender.clone();
