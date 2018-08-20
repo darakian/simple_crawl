@@ -28,9 +28,8 @@ fn main() {
     let (link_sender, link_receiver) = channel::<reqwest::Url>();
     //Init thread pool and get to work
     let n_workers = 4;
-    let n_jobs = 8;
     let pool = ThreadPool::new(n_workers);
-    link_sender.send(url);
+    link_sender.send(url).expect("Error sending url to queue");
     for link in link_receiver.iter(){
         let inner_sender = link_sender.clone();
         let inner_sites = sites_visited.clone();
@@ -70,12 +69,12 @@ fn crawl_url(url: reqwest::Url, sites_visited: Arc<Mutex<HashSet<String>>>, link
             let recurse_url = Url::parse(&link);
             match recurse_url {
                 Ok(l) => {
-                    link_sender.send(l);
+                    link_sender.send(l).expect("Error sending url to queue");
                 },
                 Err(_e) =>  {
                     let recurse_url = url.join(&link);
                     if recurse_url.is_ok(){
-                        link_sender.send(recurse_url.expect("error passing recurse_url"));
+                        link_sender.send(recurse_url.expect("error passing recurse_url")).expect("Error sending url to queue");
                     }
                 },
             }
