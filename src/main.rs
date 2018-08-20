@@ -69,12 +69,14 @@ fn crawl_url(url: reqwest::Url, sites_visited: Arc<Mutex<HashSet<String>>>, link
             let recurse_url = Url::parse(&link);
             match recurse_url {
                 Ok(l) => {
-                    link_sender.send(l).expect("Error sending url to queue");
+                    link_sender.send(l)
+                    .expect("Error sending url to queue");
                 },
                 Err(_e) =>  {
                     let recurse_url = url.join(&link);
                     if recurse_url.is_ok(){
-                        link_sender.send(recurse_url.expect("error passing recurse_url")).expect("Error sending url to queue");
+                        link_sender.send(recurse_url.expect("error passing recurse_url"))
+                        .expect("Error sending url to queue");
                     }
                 },
             }
